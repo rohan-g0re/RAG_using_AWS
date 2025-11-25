@@ -1,388 +1,67 @@
 # 1
+
 so just to clarify and correct you a little - we have 5 steps
 
 1. a trigger which gets activated after the pdf is added in bucket
 2. IndexPdfLambda lmabda which downloads the pdfs and extracts text ONLY
 3. Second lambda first creates a s3 vecotr bucket, then does this in loop:
-    3.1 chunks the extracted text into fixed sized
-    3.2 vectorizes it using bedrock
-    3.3 pushes them into bucket  
+   3.1 chunks the extracted text into fixed sized
+   3.2 vectorizes it using bedrock
+   3.3 pushes them into bucket
 
-- we need to select how to store metadata --> but before selecting also tell me - you said that raw text can be stored as metadata but it is very limited - how small are we talking  
-
+- we need to select how to store metadata --> but before selecting also tell me - you said that raw text can be stored as metadata but it is very limited - how small are we talking
 
 4. QueryRagLambda
-    - it ONLY recieves query string in natural language
-    - it vectorizes it using the same bedrock model earlier used
-    - it then initiates the search in the s3 vectors bucket and calculates the cosine similarity returns the top k vectors
-    - BASED ON WHAT WE CHOSE FOR STEP 3 - we retrieve the metadata for those k chunks, which is ONLY THE RAW TEXT (nothing else)
 
-    - these raw texts and the actual question should be stored and given to the next lambda
-
+   - it ONLY recieves query string in natural language
+   - it vectorizes it using the same bedrock model earlier used
+   - it then initiates the search in the s3 vectors bucket and calculates the cosine similarity returns the top k vectors
+   - BASED ON WHAT WE CHOSE FOR STEP 3 - we retrieve the metadata for those k chunks, which is ONLY THE RAW TEXT (nothing else)
+   - these raw texts and the actual question should be stored and given to the next lambda
 5. this lambda is responsible for folling things:
-    - INPUT: json of actual question, raw texts of all top k vectors
-    - TASKS:
-        - create a prompt and a gemini client and tell it to answer this 
-        - parse the response correctly from gemini and log it 
 
+   - INPUT: json of actual question, raw texts of all top k vectors
+   - TASKS:
+     - create a prompt and a gemini client and tell it to answer this
+     - parse the response correctly from gemini and log it
 
-
-
-******
+---
 
 <Task>
 
 1. Check everything
-2. need metdata clarification for step 3 
+2. need metdata clarification for step 3
 
 </Task>
 
-just to inform you that I did the decoupling of second lambda into query lambda and gemini lambda bcoz later for the actual application we would need to add a few more things in lamda which might be overloading a single lambda 
-
-
-
-
-
-
+just to inform you that I did the decoupling of second lambda into query lambda and gemini lambda bcoz later for the actual application we would need to add a few more things in lamda which might be overloading a single lambda
 
 # 2
-
-I AM NEW TO AWS and dont know anything about it - JUST CREATED AN AWS account -->  I have completed Phase 1 of this plan and attached its documentation below
-
-Lets start with the PHASE 2 of implementation -->
-
-******
-<ADMIN_COMMANDS>
-
-- For a phase give me tasks so that the advancement is more manageable
-- For every task: give a few cases which I need to check and inform you the results before we move to the next task
-- Give ultra_detailed navigation instructions accross AWS console for every task and help me understand why we are doing what we are doing 
-
-</ADMIN_COMMANDS>
-
-
-
-
-
-
-
-
-
-
-
-
-
-***********
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 I AM NEW TO AWS and dont know anything about it - JUST CREATED AN AWS account -->  I have completed Phase 1 and 2 of this plan and attached its documentation below
 
 Lets start with the PHASE 3 of implementation -->
 
-******
+---
+
 <ADMIN_COMMANDS>
 
 - For a phase give me tasks so that the advancement is more manageable
 - For every task: give a few cases which I need to check and inform you the results before we move to the next task
-- Give ultra_detailed navigation instructions accross AWS console for every task and help me understand why we are doing what we are doing 
+- Give ultra_detailed navigation instructions accross AWS console for every task and help me understand why we are doing what we are doing
 
 </ADMIN_COMMANDS>
 
 
 
 <phase1_report>
-
-# 📄 **Phase 1 Completion Report – Cloud RAG System**
-
-## ✅ **Objective of Phase 1**
-
-Set up the complete **skeleton architecture** and **AWS infrastructure foundation** required for a multi-Lambda, S3-driven RAG pipeline.
-
-Phase 1 ensures all cloud components exist, are connected, and Lambdas can be triggered.
-
-Phase 2 will implement actual logic (PDF → text → chunks → embeddings → RAG).
-
----
-
-# 1. **Repository & Code Structure (Local)**
-
-The codebase has been scaffolded with the following structure:
-
-```
-cloud-rag/
-│
-├── lambdas/
-│   ├── index_pdf/
-│   ├── chunk_embed/
-│   ├── query_rag/
-│   └── gemini_llm/
-│
-└── utils/
-```
-
-* Each Lambda has its own folder.
-* `utils/` will hold helpers (chunking, Bedrock client wrapper, S3 utilities).
-* Git initialized (optional).
-
----
-
-# 2. **AWS Resources Created**
-
-## **2.1 S3 Buckets**
-
-### ✔ `paper-pdfs-*`
-
-For  **raw PDF uploads** .
-
-Configured with S3 → Lambda trigger.
-
-### ✔ `paper-texts-*`
-
-For **extracted text** generated by `IndexPdfLambda`.
-
-### ✔ `paper-vectors-*` (Vector Bucket)
-
-* Vector index: **`paper-chunks`**
-* Configuration:
-  * **dimension:** 256
-  * **distance metric:** cosine
-  * **non-filterable metadata:** `source_text`
-  * filterable metadata is implicit (new AWS behavior)
-
-This is the **vector database** for RAG.
-
----
-
-## **2.2 Lambda Functions (4 total)**
-
-All Lambdas use:
-
-* Runtime: **Python 3.12**
-* Execution role: **`rag-lambda-exec-role`**
-* Stub handlers returning `"is alive"` for now
-
-### Lambdas created:
-
-1. **`IndexPdfLambda`**
-   * Triggered automatically when a PDF is uploaded
-   * Tested via S3 event + CloudWatch logs
-2. **`ChunkAndEmbedLambda`**
-   * Will receive extracted text and:
-     * chunk → embed (Bedrock Titan Embeddings V2) → push to vector bucket
-3. **`QueryRagLambda`**
-   * Will embed user query → perform vector search → return top-k chunks
-4. **`GeminiLambda`**
-   * Will call Gemini API with (top-k chunks + question)
-   * Will return final answer
-
-All 4 deployed and tested from console.
-
----
-
-## **2.3 IAM / Secrets / Model Access**
-
-### ✔ Execution Role
-
-**`rag-lambda-exec-role`**
-
-Attached policies:
-
-* `AWSLambdaBasicExecutionRole`
-* `AmazonS3FullAccess`
-* `AmazonBedrockFullAccess`
-
-### ✔ Secrets Manager
-
-Secret created:
-
-```
-gemini/api-key/dev
-→ contains key: GEMINI_API_KEY
-```
-
-### ✔ Bedrock Model Access
-
-* Bedrock’s **Titan Text Embeddings V2** visible in Model Catalog
-* Bedrock model-access page retired → serverless models auto-enabled
-
-Model ID:
-
-```
-amazon.titan-embed-text-v2:0
-```
-
----
-
-# 3. **Event Wiring & Validation**
-
-### ✔ S3 → Lambda Trigger
-
-Bucket `paper-pdfs-*` triggers `IndexPdfLambda` on:
-
-```
-s3:ObjectCreated:*
-```
-
-### ✔ End-to-end test
-
-Uploading a PDF:
-
-* Fired the Lambda
-* Logs visible in CloudWatch
-* S3 event contained correct `{bucket, key}` payload
-
-
+fill in .....
 </phase1_report>
 
-
 <phase2_report>
-
-Short answer:  **Yes – Phase 2 is functionally DONE** , with a couple of tiny deviations we should just be aware of.
-
-Let’s tick it off against your own checklist:
-
----
-
-## 1️⃣ `IndexPdfLambda`
-
-* **Download PDF from S3 event**
-  * Uses `bucket` + decoded `key` from S3 event → `s3.get_object(...)` ✅
-* **Extract text with `pypdf`**
-  * `PdfReader(BytesIO(pdf_bytes))` + join page texts ✅
-* **Save to `paper-texts` as `user/{user_id}/papers/{paper_id}.txt`**
-  * Logs show:
-
-    `s3://paper-texts-rohan-dev/user/dev-user/papers/History_of_ML.txt` ✅
-* **Invoke `ChunkAndEmbedLambda` async with payload**
-  * Payload matches: `user_id`, `paper_id`, `text_s3_bucket`, `text_s3_key`
-  * Logs confirm:
-
-    `[IndexPdfLambda] Invoked ChunkAndEmbedLambda: ...` ✅
-
-👉 **All 4 IndexPdfLambda items: DONE.**
-
----
-
-## 2️⃣ `ChunkAndEmbedLambda`
-
-* **Read text from `paper-texts`**
-  * `s3.get_object(... text_bucket, text_key ...)` ✅
-* **`chunk_text` implemented (fixed size)**
-  * Yes, greedy, word-aware chunker.
-  * We’re using **`max_chars=1000`** instead of 2000 →  *design choice you explicitly made* . ✅ (just note the difference from the original spec)
-* **`embed_text` using Titan Embeddings v2**
-  * Calls `amazon.titan-embed-text-v2:0` via `bedrock-runtime`
-  * Returns 256-dim vectors, verified in logs ✅
-* **Loop per chunk → embedding → vector payload → PutVectors**
-  * For each chunk:
-    * Embeds via Titan ✅
-    * Builds `vector_items` with:
-      * `key = "{user_id}:{paper_id}:{chunk_index}:{uuid}"`
-
-        (slightly different format than `user/.../chunks/...` but logically same)
-      * `metadata = { user_id, paper_id, chunk_index, source_text }` ✅
-    * Calls `s3v.put_vectors(...)` **once per batch of all chunks**
-      * For your PDFs that’s 4 vectors per request (well under 50) ✅
-
-Only micro-deviation from your text spec:
-
-* Batching is “all chunks in one call” instead of grouping into batches of 50. Functionally fine; we can add batching later if you want to stress-test large docs.
-
-👉 **All logical responsibilities of ChunkAndEmbedLambda: DONE.**
-
----
-
-## 3️⃣ Testing checklist
-
-* **Upload a small PDF** → done many times ✅
-* **`paper-texts` has `.txt`** → we saw exact path + content in logs ✅
-* **S3 Vectors index has vectors**
-  * `list-vectors` in CloudShell shows 4 keys ✅
-* **Metadata includes `source_text` and IDs**
-  * `get-vectors --return-data --return-metadata` shows:
-    * `paper_id: "History_of_ML"`
-    * `user_id: "dev-user"`
-    * `chunk_index: 0`
-    * `source_text: "History See also: Timeline of machine learning ..."` ✅
-
-👉 **End-of-Phase-2 checkpoint: PASSED.**
-
----
-
-### Tiny “diff vs spec” summary (for your report / prof):
-
-1. **Chunk size** : 1000 chars instead of 2000 (your conscious choice for finer granularity).
-2. **Vector keys** : `user:paper:chunk:uuid` instead of a pure “path-like” key; still uniquely encodes user/paper/chunk.
-3. **Batch size** : currently “all chunks in one `put_vectors` call”; spec said “groups of ~50” – behaviour is equivalent at your current scale.
-
-If you’re happy with those choices,  **Phase 2 is completely done and demonstrable** , and we’re ready to start **Phase 3: QueryRagLambda + Gemini LLM step** when you say the word.
-
+fill in .....
 </phase2_report>
 
 <phase3_details>
-
-
-## Phase 3 – QueryRagLambda (Vector Search Only)
-
-**Goal:** Given a question, return the top-K chunk texts (no Gemini yet).
-
-1. **Implement `QueryRagLambda` basic**
-
-   1. Input event shape (for now):
-
-      ```json
-      { "user_id": "user123", "paper_ids": ["paper456"], "question": "..." }
-      ```
-   2. Embed the question using same Titan embeddings.
-   3. Build S3 Vectors filter:
-
-      * `user_id = user123`
-      * `paper_id in paper_ids` (optional).
-   4. Call `QueryVectors`:
-
-      * `topK = 10`
-      * `returnMetadata = true`
-   5. Extract `source_text` from metadata for each hit.
-   6. Return:
-
-      ```json
-      {
-        "top_k_chunks": [
-          { "text": "...chunk1...", "rank": 1 },
-          { "text": "...chunk2...", "rank": 2 }
-        ]
-      }
-      ```
-
-2. **Test in isolation**
-
-   1. Manually invoke `QueryRagLambda` from AWS console:
-
-      * Use a question relevant to the test PDF.
-   2. Confirm:
-
-      * You get non-empty `top_k_chunks`.
-      * `source_text` is actually that chunk’s content.
-
-✅ **End of Phase 3 checkpoint:**
-You have a working RAG *retriever*: question → embedding → vector search → top-K chunk texts.
-
-
+fill in from @plan.md .....
 </phase3_details>

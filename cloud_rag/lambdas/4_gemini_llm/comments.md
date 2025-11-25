@@ -1,0 +1,3 @@
+- Similar to the lambda 1 - AWS does not natively have ```google-generativeai``` package
+- But during creating the layer it was constanlty keeping on creating ARM compiled binary files (bcoz I use an ARM laptop) even though I used WSL.
+- So we are nomore using that package - BUT -  we will beusing gemini api directly over HTTP
