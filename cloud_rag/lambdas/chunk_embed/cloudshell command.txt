@@ -1,0 +1,73 @@
+aws s3vectors list-vectors \
+  --vector-bucket-name paper-vectors-rohan-dev \
+  --index-name paper-chunks \
+  --max-results 10 \
+  --region us-east-1
+
+
+
+
+{
+    "vectors": [
+        {
+            "key": "dev-user:History_of_ML:0:f261dbf0-906e-4e72-878a-e02b61a9f9a9"
+        },
+        {
+            "key": "dev-user:History_of_ML:2:14107446-cfd2-4a8b-a2c8-4fddd0771a6e"
+        },
+        {
+            "key": "dev-user:History_of_ML:1:a4b8e373-7088-4247-b3f9-eb388d353347"
+        },
+        {
+            "key": "dev-user:History_of_ML:3:a7163c6e-9b34-407c-b9e7-00c1f510d6da"
+        }
+    ]
+}
+
+
+
+
+
+********************
+
+
+aws s3vectors get-vector \
+  --vector-bucket-name paper-vectors-rohan-dev \
+  --index-name paper-chunks \
+  --key <PUT_VECTOR_KEY_HERE> \
+  --region us-east-1
+
+
+
+
+
+~ $ aws s3vectors get-vectors \
+>   --vector-bucket-name paper-vectors-rohan-dev \
+>   --index-name paper-chunks \
+>   --keys dev-user:History_of_ML:0:f261dbf0-906e-4e72-878a-e02b61a9f9a9 \
+>   --return-data \
+>   --return-metadata \
+>   --region us-east-1
+{
+    "vectors": [
+        {
+            "key": "dev-user:History_of_ML:0:f261dbf0-906e-4e72-878a-e02b61a9f9a9",
+            "data": {
+                "float32": [
+                    -0.02698206529021263,
+                    
+                    ........... 
+                    many more numbers
+                    ........... 
+                    0.009453182108700275
+                ]
+            },
+            "metadata": {
+                "paper_id": "History_of_ML",
+                "source_text": "History See also: Timeline of machine learning The term machine learning was coined in 1959 by Arthur Samuel, an IBM employee and pioneer in the field of computer gaming and artificial intelligence.[5][6] The synonym self- teaching computers was also used in this time period.[7][8] The earliest machine learning program was introduced in the 1950s when Arthur Samuel invented a computer program that calculated the winning chance in checkers for each side, but the history of machine learning roots back to decades of human desire and effort to study human cognitive processes.[9] In 1949, Canadian psychologist Donald Hebb published the book The Organization of Behavior, in which he introduced a theoretical neural structure formed by certain interactions among nerve cells.[10] Hebb's model of neurons interacting with one another set a groundwork for how AIs and machine learning algorithms work under nodes, or artificial neurons used by computers to communicate data.[9] Other researchers who",
+                "chunk_index": 0,
+                "user_id": "dev-user"
+            }
+        }
+    ]
+}
