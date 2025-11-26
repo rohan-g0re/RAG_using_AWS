@@ -40,6 +40,7 @@ export default function SearchCard({ onAddToSession }: SearchCardProps) {
       url.searchParams.set("query", query.trim());
       url.searchParams.set("limit", "5");
 
+      console.log(`[SearchCard] Searching with URL: ${url.toString()}`);
       const res = await fetch(url.toString());
 
       if (!res.ok) {
@@ -47,14 +48,17 @@ export default function SearchCard({ onAddToSession }: SearchCardProps) {
         const message =
           payload?.detail ||
           `Search failed with status ${res.status} ${res.statusText}`;
+        console.error(`[SearchCard] Search failed:`, { status: res.status, payload });
         throw new Error(message);
       }
 
       const data = (await res.json()) as PaperResult[];
+      console.log(`[SearchCard] Search successful, got ${data.length} results`);
       setResults(data);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong while searching.";
+      console.error(`[SearchCard] Search error:`, err);
       setError(message);
     } finally {
       setIsSearching(false);

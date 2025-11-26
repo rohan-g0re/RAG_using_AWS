@@ -19,7 +19,185 @@ I’ll go **phase by phase**, with: goal, assumptions, and ultra-detailed tasks.
 
 ---
 
-![1764146196699](image/plan/1764146196699.png)---
+## Phase 1 – Frontend UX & Flows (No Real Backend)
+
+**Goal:**
+Have the **entire user experience** implemented in Next.js with clear UI components and *fake/mocked* API calls, so that the full happy path works visually:
+
+> Home → Start Study Session → Gather Resources → Chat with Resources → End Session
+
+**Assumptions:**
+
+* You already have a basic Next.js app and a search page calling the other team’s search API.
+* For this phase, **our study APIs are mocked** (e.g., Next.js `/api` routes or local mocks).
+* Hardcode `user_id = "dev-user"` on frontend.
+
+### 1.1 Define front-end “state machine” for study session (in code, not infra)
+
+Represent the study state in the front-end:
+
+* `status: "IDLE" | "COLLECTING" | "INDEXING" | "READY" | "ENDED"`
+
+And associated metadata:
+
+* `sessionName: string`
+* `maxHours: number (1–5)`
+* `totalPapers: number`
+* `indexedPapers: number`
+* `resources: Array<{ paperId, title, source: "upload" | "arxiv", status: "ADDED" }>`
+
+Store this in e.g.:
+
+* React context (`StudySessionContext`)
+  or
+* Simple global store (Zustand/Redux)
+  or
+* Per-page state passed via URL query.
+
+For now, **frontend owns this state**; backend will own it later.
+
+### 1.2 Home screen – “Start Study Session”
+
+Implement a Home route, e.g. `/`:
+
+* Show a central **“Start Study Session”** button.
+* On click: open modal or redirect to `/start-session`.
+
+Modal content:
+
+1. Input: `Session Name` (text input).
+2. Input: `Time in hours` (number 1–5, enforced by UI).
+3. Buttons:
+
+   * “Cancel” → back to home.
+   * “Gather Resources” →
+
+     * Locally set `status = "COLLECTING"`, `sessionName`, `maxHours`, `totalPapers = 0`.
+     * Navigate to `/resources`.
+
+No backend call yet; this is pure FE state.
+
+### 1.3 “Gather Resources” screen
+
+Route: `/resources`
+
+Layout (reusing your current design):
+
+* **Left column:** Upload PDF
+
+  * File picker
+  * List of uploaded files (local state)
+  * Each shows local `paperId`, `fileName`, `source = "upload"`
+
+* **Right column:** Search
+
+  * Search box → calls **existing search API** (other team)
+  * Renders a list of search results (title, authors, abstract, etc.)
+  * For each result:
+
+    * Existing “View on arXiv” link
+    * **New** button: **“Add to Session”**
+
+Behavior:
+
+* **Upload PDF:**
+
+  * When user selects file:
+
+    * Generate client-side `paperId = "tmp-upload-uuid"` for now.
+    * Push to `resources[]` in front-end state.
+  * No upload to S3 yet, only local.
+
+* **Add to Session (search result):**
+
+  * On click:
+
+    * Generate `paperId = "tmp-arxiv-uuid"`.
+    * Add to `resources[]` with:
+
+      * `paperId`
+      * `title`
+      * `source = "arxiv"`
+      * `status = "ADDED"`
+
+At the **bottom of the page**:
+
+* Show a “Session resources summary” panel:
+
+  * List of all `resources` with:
+
+    * title
+    * source
+* Button: **“Chat with Resources”**:
+
+  * For now:
+
+    * If `resources.length == 0`, disable with message “Add at least one resource”.
+    * On click:
+
+      * Simulate that backend moved from COLLECTING → INDEXING → READY:
+
+        * Immediately set `status = "READY"` (for now).
+      * Navigate to `/chat`.
+
+### 1.4 Chat screen
+
+Route: `/chat`
+
+Layout:
+
+* Header:
+
+  * Show `sessionName`, `maxHours`.
+
+* Main:
+
+  * Chat transcript area (scrollable).
+  * Message composer (textarea + “Send”).
+
+* Footer:
+
+  * Button: **“End Session”**.
+
+Behavior (mocked):
+
+* On mount:
+
+  * Read `status` from local FE state.
+  * For this phase, assume `status == "READY"` and show input directly.
+
+* When user types and hits “Send”:
+
+  * Add a **user message bubble** to local `messages[]`.
+  * Immediately add a fake assistant message:
+
+    * After 1–2s timeout, append “This is a mocked answer for now.”
+
+* When user clicks **“End Session”**:
+
+  * Open modal:
+
+    * Show:
+
+      * “You studied X hours” (mock this)
+      * List **resources** from FE state.
+    * On “Done”:
+
+      * Clear FE state (`status = "IDLE"`, `resources = []`, `messages = []`).
+      * Navigate to Home (`/`).
+
+✅ **Phase 1 success criteria:**
+
+* UX feels complete and coherent.
+* No real AWS yet, but:
+
+  * You can run the app end-to-end:
+
+    * Start session → gather resources → chat screen → end session.
+  * “Add to Session” works visually for both uploads and search results.
+  * Chat is interactive, albeit mocked.
+
+---
 
 ## Phase 2 – Cloud Infra Definitions (Buckets, Tables, Queues, API Gateway)
 

@@ -26,6 +26,7 @@ export function useUploadToLibrary() {
         const formData = new FormData();
         formData.append("file", file);
 
+        console.log(`[useUploadToLibrary] Uploading to: ${API_BASE_URL}/upload`);
         const res = await fetch(`${API_BASE_URL}/upload`, {
           method: "POST",
           body: formData
@@ -36,10 +37,12 @@ export function useUploadToLibrary() {
           const message =
             payload?.detail ||
             `Upload failed with status ${res.status} ${res.statusText}`;
+          console.error(`[useUploadToLibrary] Upload failed:`, { status: res.status, payload });
           throw new Error(message);
         }
 
         const data = (await res.json()) as UploadResponse;
+        console.log(`[useUploadToLibrary] Upload successful:`, data);
         setResponse(data);
         return data;
       } catch (err) {
@@ -47,6 +50,7 @@ export function useUploadToLibrary() {
           err instanceof Error
             ? err.message
             : "Something went wrong while uploading.";
+        console.error(`[useUploadToLibrary] Upload error:`, err);
         setError(message);
         throw err;
       } finally {
