@@ -1,1 +1,19 @@
-my_venv/
+# Environment
+.env
+venv/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Node / Next.js frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.turbo/
+frontend/.vercel/
+frontend/.env.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
