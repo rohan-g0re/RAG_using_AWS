@@ -30,7 +30,7 @@ Let’s tick it off against your own checklist:
   * `s3.get_object(... text_bucket, text_key ...)` ✅
 * **`chunk_text` implemented (fixed size)**
   * Yes, greedy, word-aware chunker.
-  * We’re using **`max_chars=1000`** instead of 2000 →  *design choice you explicitly made* . ✅ (just note the difference from the original spec)
+  * We’re using **`max_chars=200`** instead of 1000 →  *design choice you explicitly made because* . ✅ 1000 character chunks were too heavy to process by Gemini API over HTTP.
 * **`embed_text` using Titan Embeddings v2**
   * Calls `amazon.titan-embed-text-v2:0` via `bedrock-runtime`
   * Returns 256-dim vectors, verified in logs ✅
@@ -72,7 +72,7 @@ Only micro-deviation from your text spec:
 
 ### Tiny “diff vs spec” summary (for your report / prof):
 
-1. **Chunk size** : 1000 chars instead of 2000 (your conscious choice for finer granularity).
+1. **Chunk size** : 200 chars instead of 1000 (your conscious choice for finer granularity).
 2. **Vector keys** : `user:paper:chunk:uuid` instead of a pure “path-like” key; still uniquely encodes user/paper/chunk.
 3. **Batch size** : currently “all chunks in one `put_vectors` call”; spec said “groups of ~50” – behaviour is equivalent at your current scale.
 

@@ -1,9 +1,5 @@
 # Phase 3 & Phase 4 Completion Report – Cloud RAG System
 
-This document summarizes **everything implemented, verified, debugged, and validated** in Phase 3 and Phase 4 of the Cloud RAG project. It is written to serve as a **technical proof** of backend functionality for the Cloud Computing course and for onboarding teammates.
-
----
-
 # **1. Overview of Phase 3 & Phase 4 Goals**
 
 ### **Phase 3 – QueryRagLambda (Retriever Pipeline)**
@@ -28,6 +24,8 @@ QueryRagLambda performs the following steps end-to-end:
 
 Supports input JSON of the form:
 
+**IMPORTANT** --> The paper_ids should be added by the backend itself, if that is difficult to implement then we would need to change the request structure for both the lambdas. 
+
 ```json
 {
   "user_id": "dev-user",
@@ -46,25 +44,8 @@ Uses the same embedding model as the indexing pipeline:
 * 256-dim embeddings
 * Normalized vectors for cosine similarity
 
-### **3. Build S3 Vectors Query Filter**
 
-Filter includes:
-
-* `user_id = <user>`
-* `paper_id IN [list]`
-
-Constructed filter example:
-
-```json
-{
-  "$and": [
-    {"user_id": {"$eq": "dev-user"}},
-    {"paper_id": {"$in": ["History_of_ML", "Cloud_Computing_Paper_Review"]}}
-  ]
-}
-```
-
-### **4. Query S3 Vectors index**
+### **3. Query S3 Vectors index**
 
 Using:
 
@@ -79,7 +60,7 @@ s3v.query_vectors(
 )
 ```
 
-### **5. Extract top-K chunks**
+### **4. Extract top-K chunks**
 
 Metadata returned by S3 Vectors includes:
 
@@ -101,7 +82,7 @@ Chunks are formatted into consistent objects like:
 }
 ```
 
-### **6. Optionally invoke GeminiLambda**
+### **5. Invokes GeminiLambda**
 
 If `invoke_gemini=true`, the Lambda:
 
@@ -117,7 +98,7 @@ Example payload sent:
 }
 ```
 
-### **7. Combine final answer**
+### **6. Combine final answer**
 
 QueryRagLambda returns:
 
@@ -131,44 +112,6 @@ QueryRagLambda returns:
 
 ---
 
-# **3. Phase 3 – AWS Configuration Completed**
-
-## **3.1 IAM Permissions**
-
-Added inline policy to `rag-lambda-exec-role`:
-
-* `s3vectors:QueryVectors`
-* `s3vectors:GetVectors`
-* `lambda:InvokeFunction` (for GeminiLambda)
-
-Full policy applied:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "lambda:InvokeFunction"
-      ],
-      "Resource": "arn:aws:lambda:us-east-1:<acct>:function:GeminiLambda"
-    }
-  ]
-}
-```
-
-## **3.2 Functional Validation**
-
-### When testing QueryRagLambda:
-
-* Vector search succeeded.
-* Filter correctly matched only user-specific vectors.
-* Top-K chunks were returned.
-* GeminiLambda was successfully invoked.
-* Response from GeminiLambda appeared in logs.
-
----
 
 # **4. Phase 4 – GeminiLambda**
 
@@ -229,9 +172,7 @@ Context:
 <text>
 ```
 
-Strict grounding ensures  **no hallucination** .
-
-## **4.3 Error Handling Added**
+## **4.3 Error Handling Added** --> NOT IMPLEMENTED, but can in clude this error handling for better UI directly
 
 Gemini sometimes returns 503 `model overloaded`.
 
@@ -246,9 +187,9 @@ This ensures graceful degradation.
 
 ---
 
-# **5. Phase 4 – AWS Configuration Completed**
+# **4.4 AWS Configuration Completed**
 
-## **5.1 Secrets Manager**
+## **4.4.1 Secrets Manager**
 
 Gemini API key stored in:
 
@@ -262,56 +203,15 @@ Lambda can read it securely using:
 boto3.client("secretsmanager").get_secret_value(...)
 ```
 
-## **5.2 No Lambda Layers Required**
+## **4.4.2 No Lambda Layers Required**
 
 Removed heavy Google SDK.
 
 Using pure `urllib` avoids native binaries.
 
----
 
-# **6. End-to-End Validation Summary**
 
-A single request to QueryRagLambda produced full end-to-end success.
-
-### **Request**
-
-```json
-{
-  "user_id": "dev-user",
-  "paper_ids": ["History_of_ML", "Cloud_Computing_Paper_Review"],
-  "question": "What is BigQuery --- xoxo ?",
-  "top_k": 2,
-  "invoke_gemini": true
-}
-```
-
-### **Retriever Output (Top-K chunks)**
-
-S3 Vectors returned the two most relevant BigQuery chunks.
-
-### **Gemini Output**
-
-GeminiLambda returned:
-
-```
-BigQuery is a cloud-powered, fully-managed query service from Google...
-```
-
-A correct, grounded answer synthesizing both chunks.
-
-### **CloudWatch Confirmation**
-
-Logs confirmed:
-
-* QueryRagLambda → S3 Vectors → GeminiLambda path
-* Full prompt construction
-* LLM call with valid response
-* No runtime errors
-
----
-
-# **7. Final Architecture for Phases 3 & 4**
+# **5. Final Architecture for Phases 3 & 4**
 
 **QueryRagLambda:**
 
@@ -328,35 +228,3 @@ Logs confirmed:
 * returns grounded answer
 
 Together, these complete the **Retriever + Generator** loop of the cloud-based RAG system.
-
----
-
-# **8. Deliverables Ready for Presentation**
-
-* Fully functional multi-Lambda RAG pipeline
-* S3 Vectors as vector database
-* Titan Embeddings for semantic retrieval
-* Gemini LLM for grounded generation
-* Proper IAM permissions
-* Robust error handling
-* Full CloudWatch observability
-* Ability to delete/rebuild indices during development
-
----
-
-# **9. Next Steps (Phase 5)**
-
-Ready to implement:
-
-* API Gateway endpoints for frontend
-* Cognito authentication (Login/Signup)
-* DynamoDB tables for Users, Papers, Chats, Messages
-* Chat session persistence
-* React/Flutter-based chat UI
-* Upload PDF via presigned URLs
-
----
-
-# **End of Phase 3 & 4 Report**
-
-This report covers **all technical, architectural, and implementation details** required to demonstrate the fully working backend retrieval/generation pipeline for the Cloud Computing project.
